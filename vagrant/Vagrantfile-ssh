@@ -1,0 +1,41 @@
+# -*- mode: ruby -*-
+#
+VAGRANT_DEFAULT_PROVIDER="virtualbox"
+ 
+Vagrant.configure("2") do |config|
+
+  #  Configure base  
+  config.vm.box = 'centos/7'
+  config.ssh.forward_agent = true
+  
+   # nodes
+  $node_count = 2
+  (1..$node_count).each do |id|
+     config.vm.define "node#{id}" do |nodes|
+         nodes.vm.hostname = "node#{id}.vm"
+         nodes.vm.network :private_network, :ip => "192.168.77.#{20+id}"
+         nodes.vm.provision :hosts, :sync_hosts => true
+
+         # Add nodes in Puppet master
+         nodes.vm.provision "shell", inline: "curl -k https://master.vm:8140/packages/current/install.bash | sudo bash"
+
+    end
+ end
+
+
+  # Vault Development
+  config.vm.define :vault do |vault|
+      vault.vm.hostname = "vault"
+      vault.vm.network :private_network, :ip => "192.168.77.200"
+
+      # Start of Vault in mode Dev
+      vault.vm.provision :shell, path: "./vault/ServerVault.sh"
+
+
+      vault.vm.provider :virtualbox do |setting|
+           setting.memory = 2048
+           setting.cpus = 2
+      end
+   end
+end
+
